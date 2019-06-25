@@ -1,2 +1,2 @@
 # eth-todo-list
-Smart contracts for a todo-list app using Solidity
+Ethereum Dapp using Solidity and ReactJS
