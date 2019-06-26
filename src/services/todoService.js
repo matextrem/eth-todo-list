@@ -1,4 +1,5 @@
 import Web3 from 'web3'
+import TODO_CONTRACT from '../build/TodoList.json'
 
 const TodoService = {
     getContractInstance: (abi, address, web3) => {
@@ -9,9 +10,12 @@ const TodoService = {
         return instance
     },
 
-    getNetwork: web3 => {
-        return web3.eth.net.getId();
+    getNetwork: async web3 => {
+        const network = await web3.eth.net.getId();
+        return network
     },
+
+    isValidNetwork: networkId => TODO_CONTRACT.networks.hasOwnProperty(networkId),
 
     getAccount: async () => {
         const web3 = new Web3(Web3.givenProvider || "http://localhost:7545")
@@ -29,13 +33,9 @@ const TodoService = {
         return data
     },
 
-    create: (instance, content, account) => {
-        return instance.methods.createTask(content).send({ from: account })
-    },
+    create: (instance, content, account) => instance.methods.createTask(content).send({ from: account }),
 
-    toggleComplete: (instance, taskId, account) => {
-        return instance.methods.toggleCompleted(taskId).send({ from: account })
-    }
+    toggleComplete: (instance, taskId, account) => instance.methods.toggleCompleted(taskId).send({ from: account })
 }
 
 export default TodoService;

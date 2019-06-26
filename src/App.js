@@ -1,7 +1,5 @@
 import React, { Component } from 'react'
-import Web3 from 'web3'
 import TodoList from './TodoList'
-import { TODO_LIST_ADDRESS } from './config'
 import TODO_CONTRACT from './build/TodoList.json'
 import TodoService from './services/todoService'
 import './App.css'
@@ -13,7 +11,7 @@ class App extends Component {
         this.state = {
             account: '',
             taskCount: 0,
-            networkId: 0,
+            isValidNetwork: true,
             tasks: [],
             loading: true
         }
@@ -42,13 +40,15 @@ class App extends Component {
     }
     async loadBlockchainData() {
         const accountData = await TodoService.getAccount();
-        this.setState({ account: accountData.account })
-        TodoService.getNetwork(accountData.provider).then((res) => {
-            console.log(res);
-        })
-        const todoList = TodoService.getContractInstance(TODO_CONTRACT.abi, TODO_LIST_ADDRESS, accountData.provider)
-        this.setState({ todoList })
-        this.loadTasks()
+        this.setState({ account: accountData.account, provider: accountData.provider })
+        const networkId = await TodoService.getNetwork(accountData.provider)
+        if (TodoService.isValidNetwork(networkId)) {
+            const address = TODO_CONTRACT.networks[networkId].address
+            const todoList = TodoService.getContractInstance(TODO_CONTRACT.abi, address, accountData.provider)
+            this.setState({ todoList })
+            this.loadTasks()
+        } else this.setState({ isValidNetwork: false })
+
     }
 
     async loadTasks() {
@@ -59,11 +59,18 @@ class App extends Component {
 
     }
 
+    getLoadingData() {
+        let loadingText = "Loading..."
+        if (!this.state.isValidNetwork)
+            loadingText = "Wrong network. Please, change it."
+        return <p className="text-center">{loadingText}</p>
+    }
+
     render() {
         return (
             <div>
                 <nav className="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
-                    <a className="navbar-brand col-sm-3 col-md-2 mr-0" href="http://www.dappuniversity.com/free-download" target="_blank">Dapp University | Todo List</a>
+                    <a className="navbar-brand col-sm-3 col-md-2 mr-0" href="http://www.dappuniversity.com/free-download" target="_blank" rel="noopener noreferrer">Dapp University | Todo List</a>
                     <ul className="navbar-nav px-3">
                         <li className="nav-item text-nowrap d-none d-sm-none d-sm-block">
                             <small><a className="nav-link" href="#"><span id="account"></span></a></small>
@@ -74,7 +81,7 @@ class App extends Component {
                     <div className="row">
                         <main role="main" className="col-lg-12 d-flex justify-content-center">
                             {this.state.loading
-                                ? <div id="loader" className="text-center"><p className="text-center">Loading...</p></div>
+                                ? <div id="loader" className="text-center">{this.getLoadingData()}</div>
                                 : <TodoList tasks={this.state.tasks} toggleCompleted={this.toggleCompleted} createTask={this.createTask} />
                             }
                         </main>
