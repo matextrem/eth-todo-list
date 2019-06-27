@@ -12,7 +12,12 @@ class App extends Component {
             account: '',
             taskCount: 0,
             isValidNetwork: true,
+            provider: null,
             tasks: [],
+            eventsLog: {
+                TaskCreated: [],
+                TaskCompleted: []
+            },
             loading: true
         }
         this.createTask = this.createTask.bind(this)
@@ -38,6 +43,27 @@ class App extends Component {
             this.loadTasks()
         })
     }
+
+    handler = async event => {
+        this.state.provider.eth.getBlock(event.blockNumber, (error, block) => {
+            let date = null;
+            if (block) {
+                const timestamp = block.timestamp;
+                date = new Date(timestamp * 1000)
+            }
+            const eventsLog = Object.assign(
+                {},
+                this.state.eventsLog,
+                { [event.event]: [...this.state.eventsLog[event.event], { ...event.returnValues, date },] }
+            )
+            this.setState({ eventsLog })
+        });
+
+    }
+
+    errorCallback = err => {
+        console.error(err);
+    }
     async loadBlockchainData() {
         const accountData = await TodoService.getAccount();
         this.setState({ account: accountData.account, provider: accountData.provider })
@@ -45,6 +71,7 @@ class App extends Component {
         if (TodoService.isValidNetwork(networkId)) {
             const address = TODO_CONTRACT.networks[networkId].address
             const todoList = TodoService.getContractInstance(TODO_CONTRACT.abi, address, accountData.provider)
+            TodoService.subscribeEvents(todoList, this.handler, this.errorCallback)
             this.setState({ todoList })
             this.loadTasks()
         } else this.setState({ isValidNetwork: false })
@@ -85,6 +112,9 @@ class App extends Component {
                                 : <TodoList tasks={this.state.tasks} toggleCompleted={this.toggleCompleted} createTask={this.createTask} />
                             }
                         </main>
+                    </div>
+                    <div className="row">
+                        <h3>Todo events log</h3>
                     </div>
                 </div>
             </div>

@@ -1,6 +1,8 @@
 import Web3 from 'web3'
 import TODO_CONTRACT from '../build/TodoList.json'
 
+const logEvents = ['TaskCreated', 'TaskCompleted'];
+
 const TodoService = {
     getContractInstance: (abi, address, web3) => {
         const options = {
@@ -18,6 +20,8 @@ const TodoService = {
     isValidNetwork: networkId => TODO_CONTRACT.networks.hasOwnProperty(networkId),
 
     getAccount: async () => {
+        //const web3 = new Web3('ws://localhost:7545')
+        // const web3 = new Web3(new Web3.providers.WebsocketProvider('ws://localhost:7545'));
         const web3 = new Web3(Web3.givenProvider || "http://localhost:7545")
         const accounts = await web3.eth.getAccounts()
         return { account: accounts[0], provider: web3 }
@@ -31,6 +35,13 @@ const TodoService = {
             data.push(task)
         }
         return data
+    },
+
+    subscribeEvents: (instance, handler, errorCb) => {
+        logEvents.map(name => {
+            let subscription = instance.events[name]({ fromBlock: 0, toBlock: 'latest' })
+            subscription.on('data', handler).on('error', errorCb)
+        })
     },
 
     create: (instance, content, account) => instance.methods.createTask(content).send({ from: account }),
